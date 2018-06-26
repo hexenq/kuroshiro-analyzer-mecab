@@ -1,9 +1,5 @@
 // Check where we are
-let isNode = false;
-const isBrowser = (typeof window !== "undefined");
-if (!isBrowser && typeof module !== "undefined" && module.exports) {
-    isNode = true;
-}
+import Mecab from "mecab-async";
 
 /**
  * Mecab Analyzer
@@ -14,11 +10,6 @@ class Analyzer {
      */
     constructor() {
         this._analyzer = null;
-        // Variable Statement
-        // ...
-        //  if(isNode) { ... }
-        //  else { ... }
-        // ...
     }
 
     /**
@@ -28,15 +19,19 @@ class Analyzer {
     init() {
         return new Promise((resolve, reject) => {
             if (this._analyzer == null) {
-                // Initialize the analyzer
-                // ...
-                // When finished, set new analyzer and call resolve
-                this._analyzer = {
-                    analyze: () => [{
-                        surface_form: "黒白",
-                        reading: "クロシロ"
-                    }]
-                };
+                this._analyzer = new Mecab();
+                this._analyzer.parser = data => ({
+                    surface_form: data[0],
+                    pos: data[1],
+                    pos_detail_1: data[2],
+                    pos_detail_2: data[3],
+                    pos_detail_3: data[4],
+                    conjugated_type: data[5],
+                    conjugated_form: data[6],
+                    basic_form: data[7],
+                    reading: data[8],
+                    pronunciation: data[9]
+                });
                 resolve();
             }
             else {
@@ -66,10 +61,10 @@ class Analyzer {
      */
     parse(str = "") {
         return new Promise((resolve, reject) => {
-            // Parse the input string
-            // ...
-            const result = this._analyzer.analyze();
-            resolve(result);
+            this._analyzer.parseFormat(str, (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+            });
         });
     }
 }

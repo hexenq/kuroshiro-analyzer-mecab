@@ -36,7 +36,7 @@ describe("kuroshiro-analyzer-mecab Node Test", () => {
             .then((result) => {
                 // console.debug(result);
                 expect(result).toBeInstanceOf(Array);
-                expect(result).toHaveLength(1);
+                expect(result).toHaveLength(4);
                 done();
             })
             .catch((err) => {
@@ -52,7 +52,24 @@ describe("kuroshiro-analyzer-mecab Node Test", () => {
             .then((result) => {
                 // console.debug(result);
                 expect(result).toBeInstanceOf(Array);
-                expect(result).toHaveLength(1);
+                expect(result).toHaveLength(0);
+                done();
+            })
+            .catch((err) => {
+                done(err);
+            });
+    });
+
+    it("Parse Blank Sentence", async (done) => {
+        analyzer = new Analyzer();
+        await analyzer.init();
+
+        const ori = "";
+        analyzer.parse(ori)
+            .then((result) => {
+                // console.debug(result);
+                expect(result).toBeInstanceOf(Array);
+                expect(result).toHaveLength(0);
                 done();
             })
             .catch((err) => {

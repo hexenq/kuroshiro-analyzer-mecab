@@ -38,7 +38,9 @@
         "url": "https://github.com/hexenq/kuroshiro-analyzer-mecab/issues"
     },
     "homepage": "https://github.com/hexenq/kuroshiro-analyzer-mecab",
-    "dependencies": {},
+    "dependencies": {
+        "mecab-async": "^0.1.2"
+    },
     "devDependencies": {
         "babel-cli": "^6.26.0",
         "babel-core": "^6.26.0",
