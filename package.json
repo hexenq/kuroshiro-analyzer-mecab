@@ -12,10 +12,8 @@
         "jest:coverage": "jest --verbose --coverage",
         "test": "npm run lint && npm run jest",
         "clean": "rimraf lib dist",
-        "build": "npm run build:cjs && npm run build:umd && npm run build:umd:min",
-        "build:cjs": "cross-env BABEL_ENV=cjs babel src --out-dir lib",
-        "build:umd": "cross-env BABEL_ENV=umd NODE_ENV=development browserify src/index.js -s MecabAnalyzer -o dist/MecabAnalyzer.js -t [ babelify ]",
-        "build:umd:min": "cross-env BABEL_ENV=umd NODE_ENV=production browserify src/index.js -s MecabAnalyzer -g uglifyify -o dist/MecabAnalyzer.min.js -t [ babelify ]"
+        "build": "npm run build:cjs",
+        "build:cjs": "cross-env BABEL_ENV=cjs babel src --out-dir lib"
     },
     "keywords": [
         "kuroshiro",
