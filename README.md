@@ -23,6 +23,11 @@
     </tr>
 </table>
 
+## Pre-requisite
+You should have `mecab` and corresponding dictionary installed in your environment. And make sure that your have added `mecab` command to your `$PATH` environment variable. This analyzer will invoke `mecab` from command line when parsing.
+
+For install instructions of `mecab`, you could check the official website of mecab from [here](http://taku910.github.io/mecab/#install).
+
 ## Install
 ```sh
 $ npm install kuroshiro-analyzer-mecab
@@ -43,7 +48,17 @@ await kuroshiro.init(analyzer);
 ```
 
 ### Initialization Parameters
-- `command`: *Optional* mecab command. If set, the param `dictPath` is ignored
+__Example:__
+```js
+const analyzer = new MecabAnalyzer({
+    dictPath: "/usr/lib/mecab/dic/mecab-ipadic-neologd/",
+    execOptions: {
+        maxBuffer: 200 * 1024,
+        timeout: 0
+    }
+});
+```
+- `command`: *Optional* mecab command (may have arguments). If set, the param `dictPath` is ignored
 - `dictPath`: *Optional* Path of the dictionary mecab used
 - `execOptions`: *Optional* The exec options to run mecab command. Example as below:
 ```js
