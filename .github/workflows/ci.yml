@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22.x, 24.x]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Install MeCab and UTF-8 IPADIC dictionary
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mecab mecab-ipadic-utf8
+      - run: npm run test:integration
+        env:
+          MECAB_DICT_PATH: /var/lib/mecab/dic/ipadic-utf8
+      - run: npm pack --dry-run
