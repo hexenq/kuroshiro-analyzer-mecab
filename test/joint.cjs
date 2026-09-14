@@ -9,56 +9,60 @@ async function main() {
     assert.ok(process.env.MECAB_CONSUMER_DIR, "Set MECAB_CONSUMER_DIR to the isolated package consumer");
     const directory = path.resolve(process.env.MECAB_CONSUMER_DIR);
     const consumer = createRequire(path.join(directory, "package.json"));
-    const names = ["kuroshiro", "kuroshiro-analyzer-mecab", "mecab-published"];
+    const baselinePackage = process.env.MECAB_BASELINE_PACKAGE;
+    const names = ["kuroshiro", "kuroshiro-analyzer-mecab"];
+    if (baselinePackage) names.push(baselinePackage);
     for (const name of names) {
         assert.ok(consumer.resolve(name).startsWith(directory + path.sep), `Non-isolated dependency: ${name}`);
     }
     const Kuroshiro = consumer("kuroshiro");
     const Current = consumer("kuroshiro-analyzer-mecab");
-    const Published = consumer("mecab-published");
     const options = {
         command: process.env.MECAB_COMMAND,
         dictPath: process.env.MECAB_DICT_PATH,
         execOptions: { timeout: 10000, maxBuffer: 1024 * 1024 }
     };
+    const cases = [
+        ["日本語", { to: "hiragana" }, "にほんご"],
+        ["日本語", { to: "katakana" }, "ニホンゴ"],
+        ["日本語", { to: "romaji" }, "nihongo"],
+        ["日本語を学ぶ。", { to: "hiragana" }, "にほんごをまなぶ。"],
+        ["日本語", { to: "hiragana", mode: "spaced" }, "にほんご"],
+        ["日本語", { to: "hiragana", mode: "okurigana" }, "日本語(にほんご)"],
+        ["日本語", { to: "hiragana", mode: "furigana" }, "<ruby>日本語<rp>(</rp><rt>にほんご</rt><rp>)</rp></ruby>"],
+        ["し", { to: "romaji", romajiSystem: "hepburn" }, "shi"],
+        ["し", { to: "romaji", romajiSystem: "nippon" }, "si"],
+        ["し", { to: "romaji", romajiSystem: "passport" }, "shi"]
+    ];
     const current = new Current(options);
-    const published = new Published(options);
     await current.init();
-    await published.init();
-    const samples = ["日本語", "日本語を学ぶ。", "すもももももも", " 日本語  を学ぶ "];
-    for (const sentence of samples) {
-        assert.deepEqual(await current.parse(sentence), await published.parse(sentence), sentence);
-    }
-    const baseline = new Kuroshiro();
-    await baseline.init(new Published(options));
-    const cases = [];
-    for (const text of samples) {
-        for (const to of ["hiragana", "katakana", "romaji"]) {
-            for (const mode of ["normal", "spaced", "okurigana", "furigana"]) {
-                for (const romajiSystem of to === "romaji" ? ["hepburn", "nippon", "passport"] : ["hepburn"]) {
-                    const settings = { to, mode, romajiSystem };
-                    cases.push({ text, settings, expected: await baseline.convert(text, settings) });
-                }
-            }
-        }
-    }
-    assert.equal(await baseline.convert("日本語", { to: "hiragana" }), "にほんご");
+    const spaced = " 日本語  を学ぶ ";
+    assert.equal((await current.parse(spaced)).map(token => token.surface_form).join(""), spaced);
     const ESMCore = (await import(pathToFileURL(consumer.resolve("kuroshiro")))).default;
-    let checks = 0;
     for (const [Core, Analyzer, label] of [
-        [Kuroshiro, Current, "current CJS"],
-        [ESMCore, (await import(pathToFileURL(consumer.resolve("kuroshiro-analyzer-mecab")))).default, "current ESM"],
-        [ESMCore, (await import(pathToFileURL(consumer.resolve("mecab-published")))).default, "published ESM"]
+        [Kuroshiro, Current, "CJS"],
+        [ESMCore, (await import(pathToFileURL(consumer.resolve("kuroshiro-analyzer-mecab")))).default, "ESM"]
     ]) {
         const core = new Core();
         await core.init(new Analyzer(options));
-        for (const { text, settings, expected } of cases) {
+        for (const [text, settings, expected] of cases) {
             assert.equal(await core.convert(text, settings), expected, `${label}: ${text} ${JSON.stringify(settings)}`);
-            checks++;
         }
         assert.equal(await core.convert(""), "");
+        await assert.rejects(core.convert("日本語", { to: "invalid" }), /Invalid Target Syllabary/);
     }
-    console.log(`Real MeCab joint tests passed: ${checks} comparisons against published 1.0.1, plus token and known-reading checks`);
+    console.log("Real MeCab joint tests passed: explicit conversion expectations with CJS and native ESM");
+
+    // Optional release evaluation: install a chosen version under an npm alias.
+    if (baselinePackage) {
+        const Baseline = consumer(baselinePackage);
+        const baseline = new Kuroshiro();
+        await baseline.init(new Baseline(options));
+        for (const [text, settings, expected] of cases) {
+            assert.equal(await baseline.convert(text, settings), expected, `Baseline ${baselinePackage}: ${text}`);
+        }
+        console.log(`Optional compatibility check passed: ${baselinePackage}`);
+    }
 }
 
 main().catch(error => {

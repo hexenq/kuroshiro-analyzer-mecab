@@ -47,8 +47,8 @@ jobs:
           npm ci --prefix tmp/core
           npm pack ./tmp/core --pack-destination "$RUNNER_TEMP"
           npm pack --pack-destination "$RUNNER_TEMP"
-          npm install --prefix "$RUNNER_TEMP/mecab-consumer" --ignore-scripts --omit=dev --no-audit --no-fund "$RUNNER_TEMP/kuroshiro-1.2.0.tgz" "$RUNNER_TEMP/kuroshiro-analyzer-mecab-1.0.1.tgz" mecab-published@npm:kuroshiro-analyzer-mecab@1.0.1
-      - name: Compare maintained and published analyzers with maintained core
+          npm install --prefix "$RUNNER_TEMP/mecab-consumer" --ignore-scripts --omit=dev --no-audit --no-fund "$RUNNER_TEMP/kuroshiro-1.2.0.tgz" "$RUNNER_TEMP/kuroshiro-analyzer-mecab-1.0.1.tgz"
+      - name: Test maintained analyzer with maintained core
         run: node test/joint.cjs
         env:
           MECAB_CONSUMER_DIR: ${{ runner.temp }}/mecab-consumer

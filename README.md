@@ -102,4 +102,6 @@ npm run test:integration
 
 You can set `MECAB_DICT_PATH` or `MECAB_COMMAND` for the integration test (`MECAB_COMMAND` takes precedence). A missing executable or incompatible dictionary causes the integration test to fail, not skip. CI runs both test layers on Node.js 22 and 24 with MeCab and UTF-8 IPADIC. Actual legacy Node.js runtime checks are still needed before release; syntax checks alone are not sufficient.
 
-CI also packs this analyzer and a pinned maintained kuroshiro core into an isolated consumer, then compares real MeCab tokens and conversions against the published `kuroshiro-analyzer-mecab@1.0.1`. The joint check covers CommonJS and native ESM imports; update the pinned core revision and tarball versions in the workflow when changing the compatibility baseline.
+CI also packs this analyzer and a pinned maintained kuroshiro core into an isolated consumer, then checks explicit expected conversions through CommonJS and native ESM imports using real MeCab. Update the pinned core revision and tarball versions in the workflow when changing the tested packages.
+
+For an optional release compatibility evaluation, install the desired published analyzer version under an npm alias in that same consumer directory. Set `MECAB_CONSUMER_DIR` to the directory and `MECAB_BASELINE_PACKAGE` to the alias, then run `node test/joint.cjs`. This applies the same expected conversions to the selected baseline; normal CI does not install or require a historical analyzer version.
