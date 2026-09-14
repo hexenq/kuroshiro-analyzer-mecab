@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22.x, 24.x]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Install MeCab and UTF-8 IPADIC dictionary
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mecab mecab-ipadic-utf8
+      - run: npm run test:integration
+        env:
+          MECAB_DICT_PATH: /var/lib/mecab/dic/ipadic-utf8
+      - run: npm pack --dry-run
+      - name: Check out maintained kuroshiro core
+        uses: actions/checkout@v7
+        with:
+          repository: hexenq/kuroshiro
+          ref: e9127b9c5f3bc637433a2139e7bf549bdb70f9d7
+          path: tmp/core
+          persist-credentials: false
+      - name: Pack core and analyzer into an isolated consumer
+        run: |
+          npm ci --prefix tmp/core
+          npm pack ./tmp/core --pack-destination "$RUNNER_TEMP"
+          npm pack --pack-destination "$RUNNER_TEMP"
+          npm install --prefix "$RUNNER_TEMP/mecab-consumer" --ignore-scripts --omit=dev --no-audit --no-fund "$RUNNER_TEMP/kuroshiro-1.2.0.tgz" "$RUNNER_TEMP/kuroshiro-analyzer-mecab-1.0.1.tgz"
+      - name: Test maintained analyzer with maintained core
+        run: node test/joint.cjs
+        env:
+          MECAB_CONSUMER_DIR: ${{ runner.temp }}/mecab-consumer
+          MECAB_DICT_PATH: /var/lib/mecab/dic/ipadic-utf8

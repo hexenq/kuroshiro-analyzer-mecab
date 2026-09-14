@@ -1,6 +1,6 @@
 # kuroshiro-analyzer-mecab
  
-[![Build Status](https://travis-ci.com/hexenq/kuroshiro-analyzer-mecab.svg?branch=master)](https://travis-ci.org/hexenq/kuroshiro-analyzer-mecab)
+[![CI](https://github.com/hexenq/kuroshiro-analyzer-mecab/actions/workflows/ci.yml/badge.svg)](https://github.com/hexenq/kuroshiro-analyzer-mecab/actions/workflows/ci.yml)
 [![npm version](https://badge.fury.io/js/kuroshiro-analyzer-mecab.svg)](http://badge.fury.io/js/kuroshiro-analyzer-mecab)
 
 <table>
@@ -24,7 +24,9 @@
 </table>
 
 ## Pre-requisite
-You should have `mecab` and corresponding dictionary installed in your environment. And make sure that your have added `mecab` command to your `$PATH` environment variable. This analyzer will invoke `mecab` from command line when parsing.
+Install `mecab` and a UTF-8 IPADIC-compatible dictionary, and add the `mecab` command to your `PATH`. This analyzer invokes the command when parsing; `init()` only configures the adapter and does not check whether the executable or dictionary is available.
+
+The underlying `mecab-async` package uses shell commands and POSIX-style quoting. Linux/macOS are the intended command-line environments; native Windows shell compatibility is not covered by this package's tests. On Windows, use a Linux Node.js and MeCab environment inside WSL.
 
 For install instructions of `mecab`, you could check the official website of mecab from [here](http://taku910.github.io/mecab/#install).
 
@@ -45,6 +47,12 @@ import MecabAnalyzer from "kuroshiro-analyzer-mecab";
 const analyzer = new MecabAnalyzer();
 
 await kuroshiro.init(analyzer);
+```
+
+CommonJS is also supported:
+
+```js
+const MecabAnalyzer = require("kuroshiro-analyzer-mecab");
 ```
 
 ### Initialization Parameters
@@ -70,3 +78,30 @@ const analyzer = new MecabAnalyzer({
     timeout: 0
 }
 ``` 
+
+`command` and `dictPath` are trusted configuration, not user input: the dependency invokes a shell and the adapter interpolates `dictPath` into the command. For dictionary paths containing spaces, supply a properly quoted `command` instead. Use MeCab's default IPADIC output format; formats such as `-Owakati` or `-Ochasen` do not match this adapter's field mapping.
+
+## Development
+
+Use Node.js 22.13+ on the 22.x line or Node.js 24+ for development. This applies to development tools, not the published library's Node.js runtime compatibility. Keep version changes for the release process.
+
+```sh
+npm ci
+npm test
+npm pack --dry-run
+```
+
+Use `npm install <package>` or `npm uninstall <package>` when changing dependencies, and commit the updated lockfile. Builds generate CommonJS in `lib/`; `npm pack` rebuilds it automatically. Write commit messages in English using Conventional Commits.
+
+`npm test` checks the adapter with a mocked backend and verifies CommonJS, native ESM default imports and ES2015 output syntax. It does not require a MeCab installation. To exercise real command execution, install MeCab and a UTF-8 IPADIC-compatible dictionary, build the package, then run:
+
+```sh
+npm run build
+npm run test:integration
+```
+
+You can set `MECAB_DICT_PATH` or `MECAB_COMMAND` for the integration test (`MECAB_COMMAND` takes precedence). A missing executable or incompatible dictionary causes the integration test to fail, not skip. CI runs both test layers on Node.js 22 and 24 with MeCab and UTF-8 IPADIC. Actual legacy Node.js runtime checks are still needed before release; syntax checks alone are not sufficient.
+
+CI also packs this analyzer and a pinned maintained kuroshiro core into an isolated consumer, then checks explicit expected conversions through CommonJS and native ESM imports using real MeCab. Update the pinned core revision and tarball versions in the workflow when changing the tested packages.
+
+For an optional release compatibility evaluation, install the desired published analyzer version under an npm alias in that same consumer directory. Set `MECAB_CONSUMER_DIR` to the directory and `MECAB_BASELINE_PACKAGE` to the alias, then run `node test/joint.cjs`. This applies the same expected conversions to the selected baseline; normal CI does not install or require a historical analyzer version.
