@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22.x, 24.x]
+        node-version: [22.22.2, 24.15.0, 26.x]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: hexenq/kuroshiro
-          ref: e9127b9c5f3bc637433a2139e7bf549bdb70f9d7
+          ref: a039f9d1f5d144f1855ad171affd0d1c8c10c3ce
           path: tmp/core
           persist-credentials: false
       - name: Pack core and analyzer into an isolated consumer
@@ -47,7 +47,7 @@ jobs:
           npm ci --prefix tmp/core
           npm pack ./tmp/core --pack-destination "$RUNNER_TEMP"
           npm pack --pack-destination "$RUNNER_TEMP"
-          npm install --prefix "$RUNNER_TEMP/mecab-consumer" --ignore-scripts --omit=dev --no-audit --no-fund "$RUNNER_TEMP/kuroshiro-1.2.0.tgz" "$RUNNER_TEMP/kuroshiro-analyzer-mecab-1.0.1.tgz"
+          npm install --prefix "$RUNNER_TEMP/mecab-consumer" --ignore-scripts --omit=dev --no-audit --no-fund "$RUNNER_TEMP"/kuroshiro-[0-9]*.tgz "$RUNNER_TEMP"/kuroshiro-analyzer-mecab-*.tgz
       - name: Test maintained analyzer with maintained core
         run: node test/joint.cjs
         env:

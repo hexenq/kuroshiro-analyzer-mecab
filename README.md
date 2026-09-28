@@ -15,7 +15,7 @@
     <tr>
         <td rowspan=2>Compatibility</td>
         <td>Node</td>
-        <td>✓ (>=6)</td>
+        <td>22 or later</td>
     </tr>
     <tr>
         <td>Browser</td>
@@ -32,8 +32,17 @@ For install instructions of `mecab`, you could check the official website of mec
 
 ## Install
 ```sh
-$ npm install kuroshiro-analyzer-mecab
+$ npm install kuroshiro-analyzer-mecab@beta
 ```
+
+The stable 1.x release remains available without the `@beta` tag.
+
+### Migrating from 1.x
+
+Version 2 requires Node.js 22 or later. CommonJS constructor imports, ESM default
+imports, the asynchronous `init()` / `parse()` API, and the IPADIC token format
+remain available. This analyzer runs only in Node.js and requires an external
+MeCab executable and a UTF-8 IPADIC-compatible dictionary.
 
 ## Usage with kuroshiro
 ### Configure analyzer
@@ -54,6 +63,31 @@ CommonJS is also supported:
 ```js
 const MecabAnalyzer = require("kuroshiro-analyzer-mecab");
 ```
+
+### TypeScript
+
+The 2.0 prerelease includes declarations for the constructor, options, and tokens.
+Install `@types/node` in TypeScript projects for the Node.js execution options:
+
+```sh
+npm install --save-dev @types/node
+```
+
+```ts
+import MecabAnalyzer from "kuroshiro-analyzer-mecab";
+
+const options: MecabAnalyzer.Options = { execOptions: { timeout: 10000 } };
+const analyzer = new MecabAnalyzer(options);
+await analyzer.init();
+const tokens: MecabAnalyzer.Token[] = await analyzer.parse("日本語");
+const readings = tokens.map(token => token.reading ?? token.surface_form);
+```
+
+Unknown words and space tokens may have no `reading` or `pronunciation`.
+MeCab tokens do not include kuromoji's `verbose` metadata.
+For TypeScript compiled to CommonJS, use a default import with interop enabled,
+or `import MecabAnalyzer = require("kuroshiro-analyzer-mecab")`.
+Native Node ESM and bundler module resolution also support the default import.
 
 ### Initialization Parameters
 __Example:__
@@ -83,7 +117,7 @@ const analyzer = new MecabAnalyzer({
 
 ## Development
 
-Use Node.js 22.13+ on the 22.x line or Node.js 24+ for development. This applies to development tools, not the published library's Node.js runtime compatibility. Keep version changes for the release process.
+Use Node.js 22.22.2+ on the 22.x line, 24.15.0+ on the 24.x line, or 26+ for development. These stricter requirements come from development tools; the published library requires Node.js 22+. Keep version changes for the release process.
 
 ```sh
 npm ci
@@ -93,15 +127,15 @@ npm pack --dry-run
 
 Use `npm install <package>` or `npm uninstall <package>` when changing dependencies, and commit the updated lockfile. Builds generate CommonJS in `lib/`; `npm pack` rebuilds it automatically. Write commit messages in English using Conventional Commits.
 
-`npm test` checks the adapter with a mocked backend and verifies CommonJS, native ESM default imports and ES2015 output syntax. It does not require a MeCab installation. To exercise real command execution, install MeCab and a UTF-8 IPADIC-compatible dictionary, build the package, then run:
+`npm test` checks the adapter with a mocked backend, verifies CommonJS and native ESM default imports from the packed package, and checks TypeScript declarations using CommonJS, native ESM, and bundler resolution. It also runs the compiled Node consumers against empty and space-only input. It does not require a MeCab installation. To exercise real command execution, install MeCab and a UTF-8 IPADIC-compatible dictionary, build the package, then run:
 
 ```sh
 npm run build
 npm run test:integration
 ```
 
-You can set `MECAB_DICT_PATH` or `MECAB_COMMAND` for the integration test (`MECAB_COMMAND` takes precedence). A missing executable or incompatible dictionary causes the integration test to fail, not skip. CI runs both test layers on Node.js 22 and 24 with MeCab and UTF-8 IPADIC. Actual legacy Node.js runtime checks are still needed before release; syntax checks alone are not sufficient.
+You can set `MECAB_DICT_PATH` or `MECAB_COMMAND` for the integration test (`MECAB_COMMAND` takes precedence). A missing executable or incompatible dictionary causes the integration test to fail, not skip. CI runs both test layers on Node.js 22.22.2, 24.15.0, and 26 with MeCab and UTF-8 IPADIC.
 
-CI also packs this analyzer and a pinned maintained kuroshiro core into an isolated consumer, then checks explicit expected conversions through CommonJS and native ESM imports using real MeCab. Update the pinned core revision and tarball versions in the workflow when changing the tested packages.
+CI also packs this analyzer and a pinned kuroshiro 2.0 beta core into an isolated consumer, then checks explicit expected conversions through CommonJS and native ESM imports using real MeCab. Update the pinned core revision when changing the tested core.
 
 For an optional release compatibility evaluation, install the desired published analyzer version under an npm alias in that same consumer directory. Set `MECAB_CONSUMER_DIR` to the directory and `MECAB_BASELINE_PACKAGE` to the alias, then run `node test/joint.cjs`. This applies the same expected conversions to the selected baseline; normal CI does not install or require a historical analyzer version.
